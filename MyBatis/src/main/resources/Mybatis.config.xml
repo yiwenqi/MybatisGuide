@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    
+
+    <settings>
+        <!--开启驼峰自动命名设置-->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <!--
+        lazyLoadingEnabled
+            （延迟加载）懒加载：关联的值在使用的时候才会被加载
+
+        aggressiveLazyLoading
+            侵入加载：加载时会加载全部的值，为false时则只加载需要的值
+         -->
+        <setting name="cacheEnabled" value="true"/>
+        <setting name="lazyLoadingEnabled" value="true"/>
+        <setting name="aggressiveLazyLoading" value="true"/>
+    </settings>
+    <environments default="development">
+        <environment id="development">
+            <transactionManager type="JDBC"/>
+            <dataSource type="POOLED">
+                <property name="driver" value="com.mysql.cj.jdbc.Driver"/>
+                <property name="url" value="jdbc:mysql://localhost:3306/test?serverTimezone=UTC"/>
+                <property name="username" value="root"/>
+                <property name="password" value="root"/>
+            </dataSource>
+        </environment>
+    </environments>
+
+    <databaseIdProvider type="DB_VENDOR">
+        <property name="MySql" value="mysql"/>
+        <property name="Oracle" value="oracle"/>
+        <property name="SQL Server" value="sqlserver"/>
+    </databaseIdProvider>
+
+    <mappers>
+        <!--
+            mapper中有三种路径指定格式
+            注册配置文件
+                url：指定磁盘中的文件
+                resource：指定类路径下的文件
+            注册接口
+                class：引用（注册）接口
+                    1.有sql映射文件，映射文件必须与接口同名，并且放在与接口同一个包内;
+                    <mapper class="cn.gsdx.day01.dao.UserMapper" />
+                    2.没有sql映射文件，所有的sql都是利用注解写在接口上的,同样也需要在同一个包下
+                    <mapper class="cn.gsdx.day01.dao.UserMapperAnnotation" />
+                推荐：
+                    比较重要的dao写sql配置文件
+                    不重要的和比较复杂的使用注解
+                 package:
+                    批量注册
+                    <package name="cn.gsdx.day01.dao.UserMapper">
+                  源码类路径下的文件都会合并到一个文件下
+        -->
+
+<!--        <mapper resource="cn/gsdx/day01/dao/UserMapper.xml"/>  -->
+        <package name="cn.gsdx.day01.dao"/>
+    </mappers>
+</configuration>

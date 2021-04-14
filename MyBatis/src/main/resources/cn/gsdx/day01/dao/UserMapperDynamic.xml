@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.gsdx.day01.dao.UserMapperDynamic">
+    <!--
+        if
+        choose (when, otherwise)
+        trim (where, set)
+        foreach
+    -->
+    <!-- test01 -->
+    <!-- public User queryUserByAllInfo(User user);-->
+    <select id="queryUserByAllInfo" resultType="cn.gsdx.day01.entity.User">
+        SELECT *
+        FROM user
+        <where>
+            <if test="id != null">
+                And id = #{id}
+            </if>
+            <if test="name != null">
+                AND name = #{name}
+            </if>
+            <if test="password == 1234">
+                AND password=#{password}
+            </if>
+        </where>
+  </select>
+    <!--
+        1.  if标签：当test中的表达式满足要求时，才会凭借if里面的语句
+        2.  因为if语句不一定会拼接因此当我们第一个条件无法确定是否拼接时，and错放会报错
+            因此通常会再where后面加上一个1=1；
+        3.  mybatis：推荐使用where标签，这样我们就可以不用担心and 位置放错。
+            因为where标签会：去掉第一个条件前多余的and 和 or ，也就是where and 会自动修改 为 where
+            同样我们需要注意: where name=name and 这样的语句where标签是不能自动修改的
+
+    -->
+    <!-- test02 -->
+    <!--public User queryUserByTrim(User user);-->
+    <select id="queryUserByTrim" resultType="cn.gsdx.day01.entity.User">
+        SELECT *
+        FROM user
+        /*
+            prefix="" : 前缀 --> trim 标签的内容就是我们条件语句where 后面的的内容
+            prefixOverrides="" :前缀覆盖  ：覆盖内容头部的内容  比如 and
+            suffix="" : 后缀 --> 标签内容尾部
+            suffixOverrides="" : 后缀覆盖 -->对标签内容尾部出现的内容进行覆盖 比如：and
+         */
+        <trim prefix="WHERE" prefixOverrides="AND" suffixOverrides="AND">
+            <if test="id != null">
+                And id = #{id}
+            </if>
+            <if test="name != null">
+                AND name = #{name}
+            </if>
+            <if test="password == 1234">
+                AND password=#{password}
+            </if>
+        </trim>
+    </select>
+    <!--
+       Choose 标签内部只能使用 when 只会进入第一个符合条件的语句，后面的会舍弃
+       而 if 判断成功后会继续向下判断
+    -->
+    <!--test03-->
+    <!--public User queryUserByChoose(User user);-->
+    <select id="queryUserByChoose" resultType="cn.gsdx.day01.entity.User">
+        SELECT * FROM user u
+        WHERE
+        <choose>
+            <when test="id!=null">
+                id=#{id}
+            </when>
+            <when test="name!=null">
+                name=#{name}
+            </when>
+            <otherwise>
+                1=1
+            </otherwise>
+        </choose>
+    </select>
+    <!--
+        当我们动态处理的时候我们不知道逗号的取舍，简单点说以下的例子如果最后一个if不符合条件，
+        那么sql语句就会变成： UPDATE user SET name=? , WHERE id = ?  多了一个逗号
+        因此我们需要使用：
+            <set>标签 推荐
+            我们也可以使用trim ：<trim prefix="set" suffixOverrides=",">
+    -->
+    <!--public boolean updateUser(User user);-->
+    <update id="updateUser" >
+        UPDATE user
+        <set>
+        <if test="name!=null">
+            name=#{name} ,
+        </if>
+        <if test="password!=null">
+            password=#{password}
+        </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+    
+    <!--
+        collection : 指定要遍历的集合
+            list类型的参数会特殊处理封装在map中，key就是list
+        item :将当前遍历的值取出赋给当前变量
+        separate :每个元素之间的分隔符
+        #{变量名}当前遍历出的元素
+        open: 以什么开始
+        close: 以什么结束
+        index: 索引
+                当遍历list的时候，index就是索引，而item就是值
+                当遍历map的时候，index就是map的key，而item就是值
+    -->
+    <!--test05-->
+
+    <!--public List<User> queryUserByForEach(@Param("ids") List<Integer> ids);-->
+    <select id="queryUserByForEach" resultType="cn.gsdx.day01.entity.User">
+        SELECT * FROM user
+        WHERE id IN
+            <foreach collection="ids" separator="," item="item_value" open="(" close=")">
+                #{item_value}
+            </foreach>
+    </select>
+
+    <!--批量保存-->
+    <!--test06-->
+    <!--public boolean addUsers(@Param("users") List<User> users);-->
+    <insert id="addUsers" >
+        INSERT INTO user VALUES
+        <foreach collection="users" item="user" separator=",">
+            (#{user.id},#{user.name},#{user.password},#{user.departmentId})
+        </foreach>
+    </insert>
+
+    <!--
+        mybatis：两个内置参数
+        _Parameter:代表整个参数
+            单个参数: _Parameter 就是这个参数
+            多个参数: 会将数据封装成 map 而 _Parameter 就是代表这个参数
+        _databaseId:如果全局配置中配置了databaseIdProvider标签那么就会有值
+            _databaseId 就是代表当前数据的别名 oracle
+    -->
+    <select id="queryUserTest" resultType="cn.gsdx.day01.entity.User">
+
+        <if test="_databaseId=='oracle'">
+            /*执行oracle查询*/
+        </if>
+        <if test="_databaseId=='mysql'">
+            /*执行mysql查询*/
+        </if>
+    </select>
+
+    <!--public User queryUserByLikeName(@Param("name") String name);-->
+    <!--test08-->
+    <!--
+        bind: 可以将表达式中的值绑定到一个变量中，方便后面引用
+        以下案例:   将name 绑定到 %name% 方便模糊查找
+                    模糊查询还是推荐传入的时候就带  %parameter%
+    -->
+    <select id="queryUserByLikeName" resultType="cn.gsdx.day01.entity.User">
+        <bind name="name" value="'%'+name+'%'"/>
+        SELECT * FROM user
+        <if test="_parameter!=null">
+            WHERE name LIKE #{name}
+        </if>
+    </select>
+
+    <!--抽取可重用sql语句
+    <sql id="insertColumn" >
+        <if test="_parameter">
+            id, name , password ,departmentId
+        </if>
+    </sql>
+    &lt;!&ndash;外部可以使用include标签引用，
+        内部可以使用<property name="testColumn" value="123"/>
+        定义自定义属性 ，取参时可以 ${testColumn} 取出value值，但是#{}不可以取出
+    &ndash;&gt;
+    &lt;!&ndash; public boolean addUsers(@Param("users") List<User> users);&ndash;&gt;
+    <insert id="addUsers">
+        INSERT INTO user(
+            <include refid="insertColumn">
+                <property name="testColumn" value="123"/>
+            </include>
+        )
+        <foreach collection="users" item="user" separator="," open="(" close=")">
+            user.id,user.name,user.password,user.departmentId
+        </foreach>
+    </insert>
+-->
+</mapper>

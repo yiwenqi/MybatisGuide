@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.gsdx.day01.dao.UserMapperPlus">
+
+   <!-- 使用ehCache整合mybatis-->
+    <cache type="org.mybatis.caches.ehcache.EhcacheCache"></cache>
+
+    <!--使用原生的二级缓存标签-->
+    <!--<cache eviction="FIFO" flushInterval="60000" readOnly="false"></cache>-->
+    <resultMap id="MyUser" type="cn.gsdx.day01.entity.User">
+        <!--
+            指定主键的封装规则
+            id定义建底层会有优化
+            column：指定对应的列
+            property：指定对应的JavaBean属性
+        -->
+        <id column="id" property="id" />
+        <!--用于定义普通列的规则-->
+        <result column="name" property="name" />
+        <!--其它不指定则自动封装-->
+    </resultMap>
+
+    <!-- test07 -->
+    <select id="queryUser" resultType="cn.gsdx.day01.entity.User" >
+        SELECT * FROM user where id=#{id};
+  </select>
+    <!--
+        场景一：
+            User ==> department
+            一个用户有一个部门,
+            此时我们就不能使用resultType=“User” ，这样在user里的department将会没有值
+            需要使用resultMap
+    -->
+    <resultMap id="MyfUser1" type="cn.gsdx.day01.entity.User">
+        <id column="id" property="id"/>
+        <result column="name" property="name" />
+        <result column="password" property="password" />
+        <result column="departmentId" property="department.id" />
+        <result column="dept_name" property="department.departmentName" />
+        <!--
+            当两张表中有相同的列名时可以指定别名，从而避免同名导致数据获取时的覆盖
+            eg：user.id 和 department.id
+                此处使用d.id departmentId 指定id的别名为departmentId从而避免部门id与用户id覆盖;
+        -->
+    </resultMap>
+
+    <resultMap id="MyfUser2" type="cn.gsdx.day01.entity.User">
+        <id column="id" property="id"/>
+        <result column="name" property="name" />
+        <result column="password" property="password" />
+        <!--
+            association: 用来定义对象的级联属性
+            联合属性 : 可以指定联合的JavaBean对象
+            property:指定那个属性时联合的对象
+            javaType:指定属性对象的类型
+        -->
+        <association property="department" javaType="cn.gsdx.day01.entity.Department" >
+            <result column="departmentId" property="id" />
+            <result column="dept_name" property="departmentName" />
+        </association>
+    </resultMap>
+    <!-- test08 -->
+    <select id="queryUserPlus" resultMap="MyfUser2">
+        SELECT user.id ,user.name,user.password ,d.dept_name ,d.id departmentId
+        FROM USER , department d WHERE user.dept_id=d.id AND user.id=#{id};
+    </select>
+
+    <resultMap id="myDepartment" type="cn.gsdx.day01.entity.Department" >
+        <id column="id" property="id" />
+        <result column="dept_name" property="departmentName" />
+        <!--
+            collection ： 定义关联的集合类的封装属性规则
+            ofType: 定义集合里面的类型 eg:List<User> 定义的就是这个User
+        -->
+        <collection property="users" ofType="cn.gsdx.day01.entity.User">
+            <!--定义这个集合之中的封装规则-->
+            <id column="uid" property="id"/>
+            <result column="name" property="name" />
+            <result column="password" property="password"/>
+        </collection>
+    </resultMap>
+    <!--    id  dept_name    ||  uid  name    -->
+
+    <!--test09-->
+    <select id="queryDepartmentByName" resultMap="myDepartment">
+        SELECT d.id ,d.dept_name , u.id uid ,u.name
+        FROM department d ,USER u
+        WHERE d.id = u.dept_id AND d.dept_name=#{deptName};
+    </select>
+
+    <resultMap id="myDepartment2" type="cn.gsdx.day01.entity.Department" >
+        <id column="id" property="id" />
+        <result column="dept_name" property="departmentName" />
+        <!--
+            collection ： 定义关联的集合类的封装属性规则
+            select: 定义第二段查询的语句，功能与上面的test09一样
+            column:定义传入的列参数；
+        -->
+        <collection property="users"
+                    select="cn.gsdx.day01.dao.UserMapperPlus.queryUserByDepartmentId"
+                    column="deptId=id" fetchType="lazy"></collection>
+        <!--
+            如果想要传入多列可以使用column=“{key01=column01,key02=column02}”
+            eg:column={deptId=id}
+        -->
+    </resultMap>
+    <select id="queryUserByDepartmentId" resultType="cn.gsdx.day01.entity.User">
+        select * from USER where dept_id = #{deptId}
+    </select>
+
+    <!--
+        test10
+        id  dept_name     uid  name
+        这样的多段取值要注意：mysql的本质是将所有的数据进行拼接（笛卡尔积）此时有许多重复的数据，
+        而我们的数据查询就是再这样的集中寻找数据，此时当User与department拼接后会存在多个相同的部门，
+        每次进行d.id = u.dept_id AND d.dept_name=#{deptName}匹配后 还会进行一次queryUserByDepartmentId的查询
+        因此本例中出现了两个相同的数据！！！
+    -->
+    <select id="queryDepartmentByNameStep" resultMap="myDepartment2">
+        SELECT d.id ,d.dept_name , u.id uid ,u.name
+        FROM department d ,USER u
+        WHERE d.id = u.dept_id AND d.dept_name=#{deptName};
+    </select>
+
+
+</mapper>

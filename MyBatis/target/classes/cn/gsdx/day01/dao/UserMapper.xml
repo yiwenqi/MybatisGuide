@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.gsdx.day01.dao.UserMapper">
+
+
+    <!-- test01 -->
+    <select id="queryUser" resultType="cn.gsdx.day01.entity.User">
+        select * from user where id = #{id}
+  </select>
+    <!--
+        parameterType：参数类型，可以省略
+        mysql支持自增主键，自增主键的获取，mybatis也是利用statement.getGenreatedKeys()
+        useGeneratedKeys="true":使用自增主键获取主键值策略
+        keyProperty="" :指定对应的主键属性，也就是mybatis获取主键值之后，将这个值封装给JavaBean的那个属性
+    -->
+    <!-- test02 -->
+    <insert id="addUser" parameterType="cn.gsdx.day01.entity.User" useGeneratedKeys="true" keyProperty="id">
+        insert into user(id ,name , password) values(#{id},#{name},#{password})
+    </insert>
+
+    <update id="updateUser" >
+        update user set name=#{name},password=#{password} where id=#{id}
+    </update>
+
+    <!-- test03 -->
+    <delete id="deleteUser">
+        delete from user where id=#{id}
+    </delete>
+
+    <!-- 当我们查询的返回值为list时,返回值
+        resultType ：list集合之中的类型
+        test04
+    -->
+    <select id="queryUserByNameLike" resultType="cn.gsdx.day01.entity.User">
+        select * from user where name like #{NameLike}
+    </select>
+
+    <!--
+        当我们想要返回map集合时（列名为key ，值为value）
+        mybatis为我们封装了map类型，可以直接使用
+        test05
+    -->
+    <select id="queryUserReturnMap" resultType="map">
+        select * from user where  name =#{name}
+    </select>
+
+    <!--
+        多条记录封装到map，主键为key ，每条查询的数据为value
+        Map<Integer,User> 在Dao接口类（mapper）中增加增加MapKey("name") 为dao接口指定主键
+     -->
+    <select id="queryUserByNameReturnMap" resultType="cn.gsdx.day01.entity.User">
+        select * from user where name like #{NameLike}
+    </select>
+
+
+</mapper>
